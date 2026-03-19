@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Fondskostenrechner</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --dark:    #1A2B4A;
+    --dark2:   #102038;
+    --teal:    #0D9488;
+    --teal-l:  #CCFBF1;
+    --teal-d:  #134E4A;
+    --blue:    #1E5FA8;
+    --light:   #F0F4F8;
+    --white:   #FFFFFF;
+    --muted:   #64748B;
+    --border:  #CBD5E1;
+    --red:     #DC2626;
+    --red-l:   #FEF2F2;
+    --red-d:   #991B1B;
+    --green:   #16A34A;
+    --green-l: #F0FDF4;
+    --gold:    #D97706;
+    --gold-l:  #FFFBEB;
+    --slate:   #475569;
+    --slate-l: #F1F5F9;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--dark2);
+    color: var(--white);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .header {
+    background: linear-gradient(135deg, var(--dark2) 0%, var(--dark) 100%);
+    padding: 28px 20px 20px;
+    text-align: center;
+    border-bottom: 3px solid var(--teal);
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(13,148,136,0.15) 0%, transparent 70%);
+  }
+  .header-label {
+    font-size: 11px; font-weight: 600; letter-spacing: 2.5px;
+    text-transform: uppercase; color: var(--teal); margin-bottom: 6px;
+  }
+  .header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(18px, 5vw, 24px);
+    font-weight: 900; color: var(--white); line-height: 1.25;
+  }
+  .header p { font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 6px; }
+
+  .controls {
+    background: var(--dark);
+    padding: 18px 20px;
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  .control-row { display: flex; flex-direction: column; gap: 6px; }
+  .control-header { display: flex; justify-content: space-between; align-items: baseline; }
+  .control-label {
+    font-size: 11px; font-weight: 500;
+    color: rgba(255,255,255,0.55); letter-spacing: 0.5px; text-transform: uppercase;
+  }
+  .control-value {
+    font-family: 'Playfair Display', serif;
+    font-size: 19px; font-weight: 700; color: var(--teal);
+  }
+  .control-value.amber { color: #F59E0B; }
+
+  input[type=range] {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; height: 4px; border-radius: 2px;
+    background: rgba(255,255,255,0.12); outline: none; cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--teal); border: 3px solid var(--dark);
+    box-shadow: 0 0 0 2px var(--teal); cursor: pointer;
+    transition: transform 0.15s;
+  }
+  input[type=range].amber-slider { background: rgba(245,158,11,0.2); }
+  input[type=range].amber-slider::-webkit-slider-thumb {
+    background: #F59E0B; box-shadow: 0 0 0 2px #F59E0B;
+  }
+  input[type=range]:active::-webkit-slider-thumb { transform: scale(1.2); }
+  .range-hints {
+    display: flex; justify-content: space-between;
+    font-size: 10px; color: rgba(255,255,255,0.28); margin-top: 2px;
+  }
+
+  .inflation-row {
+    border-top: 1px solid rgba(255,255,255,0.08);
+    padding-top: 14px;
+  }
+
+  .toggle-label {
+    font-size: 11px; color: rgba(255,255,255,0.4);
+    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;
+  }
+  .toggle-wrap {
+    display: flex; gap: 0;
+    background: rgba(255,255,255,0.07);
+    border-radius: 8px; padding: 3px;
+  }
+  .toggle-btn {
+    flex: 1; padding: 8px 4px;
+    font-size: 12px; font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    border: none; border-radius: 6px;
+    cursor: pointer; transition: all 0.2s;
+    background: transparent; color: rgba(255,255,255,0.4);
+  }
+  .toggle-btn.active { background: var(--teal); color: var(--white); }
+  .toggle-btn.active.real-btn { background: #F59E0B; color: var(--dark2); }
+
+  .section-divider {
+    height: 3px;
+    background: linear-gradient(90deg, var(--teal), transparent);
+  }
+
+  .results {
+    padding: 18px 20px;
+    display: flex; flex-direction: column; gap: 10px;
+    background: var(--light);
+  }
+  .results-title {
+    font-size: 11px; font-weight: 600; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 2px;
+  }
+  .section-label {
+    font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--muted);
+    padding: 4px 0 2px; border-bottom: 1.5px solid var(--border);
+    margin-top: 4px;
+  }
+
+  .product-card {
+    background: var(--white); border-radius: 12px;
+    padding: 14px 16px; border: 1.5px solid var(--border);
+    position: relative; overflow: hidden;
+    transition: transform 0.15s;
+  }
+  .product-card:active { transform: scale(0.99); }
+  .product-card::before {
+    content: ''; position: absolute;
+    top: 0; left: 0; width: 4px; height: 100%;
+  }
+  .card-deka::before      { background: var(--red); }
+  .card-jpm::before       { background: var(--gold); }
+  .card-ishares::before   { background: var(--green); }
+  .card-tagesgeld::before { background: var(--slate); }
+  .card-giro::before      { background: #94A3B8; }
+
+  .card-header {
+    display: flex; justify-content: space-between;
+    align-items: flex-start; margin-bottom: 8px;
+  }
+  .card-name { font-size: 13px; font-weight: 600; color: var(--dark); line-height: 1.3; }
+  .card-type { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .card-badge {
+    font-size: 10px; font-weight: 600;
+    padding: 3px 8px; border-radius: 20px;
+    white-space: nowrap; flex-shrink: 0; margin-left: 8px;
+  }
+  .badge-red    { background: var(--red-l);   color: var(--red); }
+  .badge-gold   { background: var(--gold-l);  color: var(--gold); }
+  .badge-green  { background: var(--green-l); color: var(--green); }
+  .badge-slate  { background: var(--slate-l); color: var(--slate); }
+  .badge-gray   { background: #F1F5F9;        color: #94A3B8; }
+
+  .card-amount {
+    font-family: 'Playfair Display', serif;
+    font-weight: 900; font-size: clamp(26px, 7vw, 34px);
+    line-height: 1; margin-bottom: 5px;
+    transition: color 0.3s;
+  }
+  .amount-deka      { color: var(--red); }
+  .amount-jpm       { color: var(--gold); }
+  .amount-ishares   { color: var(--green); }
+  .amount-tagesgeld { color: var(--slate); }
+  .amount-giro      { color: #94A3B8; }
+
+  .real-tag {
+    display: none; font-size: 11px; font-weight: 600;
+    margin-bottom: 5px;
+  }
+  .real-tag.visible { display: block; }
+  .real-pos  { color: var(--green); }
+  .real-neg  { color: var(--red); }
+  .real-zero { color: #94A3B8; }
+
+  .card-meta {
+    display: flex; justify-content: space-between;
+    align-items: center; flex-wrap: wrap; gap: 4px;
+  }
+  .card-ter  { font-size: 11px; color: var(--muted); }
+  .card-diff { font-size: 12px; font-weight: 600; }
+  .diff-negative { color: var(--red); }
+  .diff-neutral  { color: var(--gold); }
+  .diff-positive { color: var(--green); }
+  .diff-gray     { color: #94A3B8; }
+
+  .bar-track {
+    height: 5px; background: rgba(0,0,0,0.06);
+    border-radius: 3px; margin-top: 10px; overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%; border-radius: 3px; min-width: 2px;
+    transition: width 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .fill-deka      { background: var(--red); }
+  .fill-jpm       { background: var(--gold); }
+  .fill-ishares   { background: var(--green); }
+  .fill-tagesgeld { background: var(--slate); }
+  .fill-giro      { background: #CBD5E1; }
+
+  /* inflation banner */
+  .infl-banner {
+    background: #FEF3C7; border: 1.5px solid #F59E0B;
+    border-radius: 12px; padding: 14px 16px; display: none;
+  }
+  .infl-banner.visible { display: block; }
+  .infl-banner-title {
+    font-size: 11px; font-weight: 700; color: #92400E;
+    text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;
+  }
+  .infl-banner p { font-size: 12px; color: #78350F; line-height: 1.55; }
+  .infl-banner strong { font-weight: 700; }
+
+  .cost-block {
+    background: var(--red-l); border: 1.5px solid rgba(220,38,38,0.2);
+    border-radius: 12px; padding: 14px 16px;
+  }
+  .cost-block-title {
+    font-size: 11px; font-weight: 600; color: var(--red);
+    text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;
+  }
+  .cost-number {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(30px, 8vw, 40px);
+    font-weight: 900; color: var(--red); line-height: 1;
+  }
+  .cost-label { font-size: 12px; color: var(--red-d); margin-top: 4px; }
+
+  .invested-note {
+    text-align: center; font-size: 12px; color: var(--muted);
+    padding: 2px 4px 4px; line-height: 1.6;
+  }
+  .invested-note strong { color: var(--dark); }
+
+  .footer { background: var(--dark2); padding: 14px 20px; text-align: center; }
+  .footer p { font-size: 11px; color: rgba(255,255,255,0.28); line-height: 1.6; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .product-card   { animation: fadeUp 0.35s ease both; }
+  .card-ishares   { animation-delay: 0.04s; }
+  .card-jpm       { animation-delay: 0.08s; }
+  .card-deka      { animation-delay: 0.12s; }
+  .card-tagesgeld { animation-delay: 0.16s; }
+  .card-giro      { animation-delay: 0.20s; }
+  .cost-block     { animation: fadeUp 0.35s ease 0.24s both; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-label">Fondskostenrechner</div>
+  <h1>Was kostet aktives Management – und was hilft wirklich?</h1>
+  <p>Stell deine Werte ein und sieh, was nach Jahren übrig bleibt</p>
+</div>
+
+<div class="controls">
+
+  <div class="control-row">
+    <div class="control-header">
+      <span class="control-label">Monatliche Sparrate</span>
+      <span class="control-value" id="val-sparrate">500 €</span>
+    </div>
+    <input type="range" id="sparrate" min="50" max="2000" step="50" value="500">
+    <div class="range-hints"><span>50 €</span><span>2.000 €</span></div>
+  </div>
+
+  <div class="control-row">
+    <div class="control-header">
+      <span class="control-label">Anlagehorizont</span>
+      <span class="control-value" id="val-jahre">20 Jahre</span>
+    </div>
+    <input type="range" id="jahre" min="5" max="40" step="1" value="20">
+    <div class="range-hints"><span>5 J.</span><span>40 J.</span></div>
+  </div>
+
+  <div class="control-row">
+    <div class="control-header">
+      <span class="control-label">Bruttorendite Kapitalmarkt</span>
+      <span class="control-value" id="val-rendite">7,0 %</span>
+    </div>
+    <input type="range" id="rendite" min="2" max="12" step="0.5" value="7">
+    <div class="range-hints"><span>2 %</span><span>12 %</span></div>
+  </div>
+
+  <div class="control-row inflation-row">
+    <div class="control-header">
+      <span class="control-label">⚠ Inflation p.a.</span>
+      <span class="control-value amber" id="val-inflation">2,0 %</span>
+    </div>
+    <input type="range" id="inflation" min="0" max="6" step="0.5" value="2" class="amber-slider">
+    <div class="range-hints"><span>0 %</span><span>6 %</span></div>
+  </div>
+
+  <div class="control-row">
+    <div class="toggle-label">Ansicht</div>
+    <div class="toggle-wrap">
+      <button class="toggle-btn active" id="btn-nominal" onclick="setView('nominal')">Nominal</button>
+      <button class="toggle-btn real-btn" id="btn-real" onclick="setView('real')">Inflationsbereinigt (real)</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="section-divider"></div>
+
+<div class="results">
+  <div class="results-title" id="results-title">Endvermögen nach Kosten (nominal)</div>
+
+  <div class="infl-banner" id="infl-banner">
+    <div class="infl-banner-title">Reale Kaufkraft – was dein Geld wirklich wert ist</div>
+    <p>Bei <strong id="b-infl">2,0 %</strong> Inflation p.a. über <strong id="b-jahre">20 Jahre</strong>
+    verliert 1 € heute rund <strong id="b-loss">33 %</strong> seiner Kaufkraft.
+    Das Tagesgeldkonto erzielt <strong>real ~0 %</strong> – das Girokonto
+    verliert real jedes Jahr an Kaufkraft.</p>
+  </div>
+
+  <div class="section-label">Kapitalmarkt</div>
+
+  <div class="product-card card-ishares">
+    <div class="card-header">
+      <div>
+        <div class="card-name">iShares Core MSCI World ETF</div>
+        <div class="card-type">Passiver Index-ETF · TER 0,20 % · kein Agio</div>
+      </div>
+      <span class="card-badge badge-green">Passiv</span>
+    </div>
+    <div class="card-amount amount-ishares" id="res-ishares">—</div>
+    <div class="real-tag" id="rt-ishares"></div>
+    <div class="card-meta">
+      <span class="card-ter">Neobroker: 0 €/Jahr</span>
+      <span class="card-diff diff-positive">Referenz</span>
+    </div>
+    <div class="bar-track"><div class="bar-fill fill-ishares" id="bar-ishares" style="width:0%"></div></div>
+  </div>
+
+  <div class="product-card card-jpm">
+    <div class="card-header">
+      <div>
+        <div class="card-name">JPM US Research Enhanced ETF</div>
+        <div class="card-type">Aktiver ETF · TER 0,20 % · kein Agio</div>
+      </div>
+      <span class="card-badge badge-gold">Aktiv-ETF</span>
+    </div>
+    <div class="card-amount amount-jpm" id="res-jpm">—</div>
+    <div class="real-tag" id="rt-jpm"></div>
+    <div class="card-meta">
+      <span class="card-ter">Neobroker: 0 €/Jahr</span>
+      <span class="card-diff" id="diff-jpm"></span>
+    </div>
+    <div class="bar-track"><div class="bar-fill fill-jpm" id="bar-jpm" style="width:0%"></div></div>
+  </div>
+
+  <div class="product-card card-deka">
+    <div class="card-header">
+      <div>
+        <div class="card-name">Deka GlobalChampions CF</div>
+        <div class="card-type">Aktiver Publikumsfonds · TER 1,51 % + 3,75 % Agio</div>
+      </div>
+      <span class="card-badge badge-red">Aktiv</span>
+    </div>
+    <div class="card-amount amount-deka" id="res-deka">—</div>
+    <div class="real-tag" id="rt-deka"></div>
+    <div class="card-meta">
+      <span class="card-ter">Depot: 12,50 €/Jahr</span>
+      <span class="card-diff" id="diff-deka"></span>
+    </div>
+    <div class="bar-track"><div class="bar-fill fill-deka" id="bar-deka" style="width:0%"></div></div>
+  </div>
+
+  <div class="section-label">Bankkonto</div>
+
+  <div class="product-card card-tagesgeld">
+    <div class="card-header">
+      <div>
+        <div class="card-name">Tagesgeldkonto</div>
+        <div class="card-type">Zinssatz 2,0 % p.a. · keine Kosten</div>
+      </div>
+      <span class="card-badge badge-slate">Tagesgeld</span>
+    </div>
+    <div class="card-amount amount-tagesgeld" id="res-tagesgeld">—</div>
+    <div class="real-tag" id="rt-tagesgeld"></div>
+    <div class="card-meta">
+      <span class="card-ter">2 % Zinsen, festgesetzt</span>
+      <span class="card-diff" id="diff-tagesgeld"></span>
+    </div>
+    <div class="bar-track"><div class="bar-fill fill-tagesgeld" id="bar-tagesgeld" style="width:0%"></div></div>
+  </div>
+
+  <div class="product-card card-giro">
+    <div class="card-header">
+      <div>
+        <div class="card-name">Girokonto</div>
+        <div class="card-type">0 % Zinsen · Kaufkraft schmilzt durch Inflation</div>
+      </div>
+      <span class="card-badge badge-gray">Giro</span>
+    </div>
+    <div class="card-amount amount-giro" id="res-giro">—</div>
+    <div class="real-tag" id="rt-giro"></div>
+    <div class="card-meta">
+      <span class="card-ter">Kein Zinssatz</span>
+      <span class="card-diff" id="diff-giro"></span>
+    </div>
+    <div class="bar-track"><div class="bar-fill fill-giro" id="bar-giro" style="width:0%"></div></div>
+  </div>
+
+  <div class="cost-block">
+    <div class="cost-block-title">Kostennachteil Deka vs. iShares</div>
+    <div class="cost-number" id="cost-diff">—</div>
+    <div class="cost-label">Weniger Endvermögen durch Kosten &amp; Gebühren</div>
+  </div>
+
+  <div class="invested-note" id="invested-note"></div>
+</div>
+
+<div class="footer">
+  <p>Berechnungsgrundlage: Beverburg (2026) · Tagesgeld: fixer Zinssatz 2 % p.a.<br>
+  Keine Anlageberatung · Historische Renditen sind keine Garantie · Dieser Rechner wurde mit Hilfekünstlicher Intelligenz erstellt</p>
+</div>
+
+<script>
+  let viewMode = 'nominal';
+
+  function setView(mode) {
+    viewMode = mode;
+    document.getElementById('btn-nominal').classList.toggle('active', mode === 'nominal');
+    document.getElementById('btn-real').classList.toggle('active', mode === 'real');
+    document.getElementById('infl-banner').classList.toggle('visible', mode === 'real');
+    document.getElementById('results-title').textContent = mode === 'nominal'
+      ? 'Endvermögen nach Kosten (nominal)'
+      : 'Endvermögen – reale Kaufkraft (inflationsbereinigt)';
+    ['ishares','jpm','deka','tagesgeld','giro'].forEach(id => {
+      document.getElementById('rt-' + id).classList.toggle('visible', mode === 'real');
+    });
+    update();
+  }
+
+  const PRODUCTS = {
+    ishares:   { ter: 0.0020, agio: 0,      depot: 0,    fixedRate: null },
+    jpm:       { ter: 0.0020, agio: 0,      depot: 0,    fixedRate: null },
+    deka:      { ter: 0.0151, agio: 0.0375, depot: 12.5, fixedRate: null },
+    tagesgeld: { ter: 0,      agio: 0,      depot: 0,    fixedRate: 0.02 },
+    giro:      { ter: 0,      agio: 0,      depot: 0,    fixedRate: 0.00 },
+  };
+
+  function simulate(monthly, years, grossMarket, p) {
+    const months = years * 12;
+    const nominal = p.fixedRate !== null ? p.fixedRate : (grossMarket - p.ter);
+    const mr = Math.pow(1 + nominal, 1/12) - 1;
+    const contrib = monthly * (1 - p.agio);
+    let port = 0;
+    for (let m = 1; m <= months; m++) {
+      port += contrib;
+      port *= (1 + mr);
+      if (p.depot > 0 && m % 12 === 0) port -= p.depot;
+    }
+    return Math.max(port, 0);
+  }
+
+  function toReal(nomVal, years, infl) {
+    return nomVal / Math.pow(1 + infl, years);
+  }
+
+  function realAnnual(p, grossMarket, infl) {
+    const nom = p.fixedRate !== null ? p.fixedRate : (grossMarket - p.ter);
+    return (1 + nom) / (1 + infl) - 1;
+  }
+
+  function fmt(n) {
+    return new Intl.NumberFormat('de-DE', { maximumFractionDigits: 0 })
+      .format(Math.round(n)) + ' €';
+  }
+
+  function fmtRate(r) {
+    const sign = r > 0.0005 ? '+' : r < -0.0005 ? '–' : '≈ ';
+    return sign + Math.abs(r * 100).toFixed(1).replace('.', ',') + ' % p.a. real';
+  }
+
+  function setDiff(id, val, ref) {
+    const el = document.getElementById('diff-' + id);
+    const d = val - ref;
+    if (Math.abs(d) < 80) {
+      el.textContent = '≈ Referenz'; el.className = 'card-diff diff-neutral'; return;
+    }
+    el.textContent = (d < 0 ? '– ' : '+ ') + fmt(Math.abs(d));
+    el.className = 'card-diff ' + (d < 0 ? 'diff-negative' : 'diff-positive');
+  }
+
+  function update() {
+    const sparrate  = +document.getElementById('sparrate').value;
+    const jahre     = +document.getElementById('jahre').value;
+    const rendite   = +document.getElementById('rendite').value / 100;
+    const inflation = +document.getElementById('inflation').value / 100;
+
+    document.getElementById('val-sparrate').textContent =
+      new Intl.NumberFormat('de-DE').format(sparrate) + ' €';
+    document.getElementById('val-jahre').textContent =
+      jahre + ' Jahr' + (jahre === 1 ? '' : 'e');
+    document.getElementById('val-rendite').textContent =
+      (+document.getElementById('rendite').value).toFixed(1).replace('.', ',') + ' %';
+    document.getElementById('val-inflation').textContent =
+      (+document.getElementById('inflation').value).toFixed(1).replace('.', ',') + ' %';
+
+    // Nominal values
+    const nom = {};
+    Object.keys(PRODUCTS).forEach(k => { nom[k] = simulate(sparrate, jahre, rendite, PRODUCTS[k]); });
+
+    // Real values
+    const real = {};
+    Object.keys(PRODUCTS).forEach(k => { real[k] = toReal(nom[k], jahre, inflation); });
+
+    const vals = viewMode === 'nominal' ? nom : real;
+    const maxV = Math.max(...Object.values(vals), 1);
+
+    Object.keys(PRODUCTS).forEach(id => {
+      const v = vals[id];
+      document.getElementById('res-' + id).textContent = fmt(v);
+      document.getElementById('bar-' + id).style.width = (v / maxV * 100) + '%';
+
+      // real tag
+      const rr = realAnnual(PRODUCTS[id], rendite, inflation);
+      const rt = document.getElementById('rt-' + id);
+      rt.textContent = fmtRate(rr);
+      rt.className = 'real-tag' +
+        (viewMode === 'real' ? ' visible' : '') + ' ' +
+        (rr > 0.005 ? 'real-pos' : rr < -0.005 ? 'real-neg' : 'real-zero');
+    });
+
+    // Diffs vs iShares (reference)
+    const ref = vals.ishares;
+    setDiff('deka',      vals.deka,      ref);
+    setDiff('jpm',       vals.jpm,       ref);
+    setDiff('tagesgeld', vals.tagesgeld, ref);
+    setDiff('giro',      vals.giro,      ref);
+
+    // Cost block always nominal
+    document.getElementById('cost-diff').textContent = fmt(nom.ishares - nom.deka);
+
+    // Inflation banner
+    const loss = (1 - 1 / Math.pow(1 + inflation, jahre)) * 100;
+    document.getElementById('b-infl').textContent =
+      (+document.getElementById('inflation').value).toFixed(1).replace('.', ',') + ' %';
+    document.getElementById('b-jahre').textContent = jahre + ' Jahren';
+    document.getElementById('b-loss').textContent = loss.toFixed(0) + ' %';
+
+    // Invested
+    const invested = sparrate * jahre * 12;
+    const brutto = simulate(sparrate, jahre, rendite, {ter:0, agio:0, depot:0, fixedRate:null});
+    document.getElementById('invested-note').innerHTML =
+      `Eingezahltes Kapital: <strong>${fmt(invested)}</strong> &nbsp;·&nbsp; ` +
+      `Bruttovermögen (vor Kosten): <strong>${fmt(brutto)}</strong>`;
+  }
+
+  ['sparrate','jahre','rendite','inflation'].forEach(id => {
+    document.getElementById(id).addEventListener('input', update);
+  });
+
+  update();
+</script>
+</body>
+</html>
